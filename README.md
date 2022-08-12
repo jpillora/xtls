@@ -1,26 +1,13 @@
-# myrepo
+# xtls
 
-A short description of `myrepo`
+TLS utils
 
-[![GoDev](https://img.shields.io/static/v1?label=godoc&message=reference&color=00add8)](https://pkg.go.dev/github.com/myuser/myrepo)
-[![CI](https://github.com/myuser/myrepo/workflows/CI/badge.svg)](https://github.com/myuser/myrepo/actions?workflow=CI)
+[![GoDev](https://img.shields.io/static/v1?label=godoc&message=reference&color=00add8)](https://pkg.go.dev/github.com/jpillora/xtls)
+[![CI](https://github.com/jpillora/xtls/workflows/CI/badge.svg)](https://github.com/jpillora/xtls/actions?workflow=CI)
 
 ### Features
 
-* Major feature one
-* Another feature
-* And another
-
-### Usage
-
-```go
-package main
-
-func main() {
-	//a small demo executable go program
-	println("...")
-}
-```
+* TODO
 
 ### Install
 
@@ -28,13 +15,13 @@ func main() {
 
 <!-- NOTE: these badges only work on public repos -->
 
-[![Releases](https://img.shields.io/github/release/myuser/myrepo.svg)](https://github.com/myuser/myrepo/releases)
-[![Releases](https://img.shields.io/github/downloads/myuser/myrepo/total.svg)](https://github.com/myuser/myrepo/releases)
+[![Releases](https://img.shields.io/github/release/jpillora/xtls.svg)](https://github.com/jpillora/xtls/releases)
+[![Releases](https://img.shields.io/github/downloads/jpillora/xtls/total.svg)](https://github.com/jpillora/xtls/releases)
 
-Find [the latest pre-compiled binaries here](https://github.com/myuser/myrepo/releases/latest)
+Find [the latest pre-compiled binaries here](https://github.com/jpillora/xtls/releases/latest)
 
 **Source**
 
 ```sh
-$ go get -v github.com/myuser/myrepo
+$ go get -v github.com/jpillora/xtls
 ```
