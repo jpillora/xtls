@@ -3,13 +3,16 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net"
+	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/jpillora/opts"
@@ -18,23 +21,60 @@ import (
 
 var version = "0.0.0-src"
 
-type pemCmd struct {
-	File string `help:"an optional file, stdin will be used by default"`
+func main() {
+	type config struct {
+		Args []string `opts:"mode=arg, help=url or hostname or file path, max=1"`
+	}
+	c := config{}
+	opts.New(&c).
+		Version(version).
+		Parse()
+
+	arg := "-"
+	if len(c.Args) > 0 {
+		arg = c.Args[0]
+	}
+	if err := run(arg); err != nil {
+		log.Fatalf("errored: %s", err)
+	}
+
 }
 
-func (p pemCmd) Run() error {
-	r := os.Stdin
-	if p.File != "" || p.File == "-" {
-		f, err := os.Open(p.File)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		r = f
+func run(arg string) error {
+	if arg == "" || arg == "-" {
+		return stdin()
 	}
+	if len(arg) < 1024 {
+		if s, err := os.Stat(arg); err == nil && !s.IsDir() {
+			return file(arg)
+		}
+		return connect(arg)
+	}
+	return errors.New("unknown input")
+}
+
+func stdin() error {
+	return reader(os.Stdin)
+}
+
+func file(path string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return reader(f)
+}
+
+func reader(r io.Reader) error {
+	r = io.LimitReader(r, 1024*1024) //cert bigger than 1MB? dont think so
 	b, err := io.ReadAll(r)
 	if err != nil {
 		return err
+	}
+	// optionally decode base64s
+	if b64, err := base64.StdEncoding.DecodeString(string(b)); err == nil && len(b64) > 0 {
+		b = b64
 	}
 	var block *pem.Block
 	data := b
@@ -42,11 +82,13 @@ func (p pemCmd) Run() error {
 		block, data = pem.Decode(data)
 		switch block.Type {
 		case "CERTIFICATE":
-			cert, err := x509.ParseCertificate(block.Bytes)
+			c, err := x509.ParseCertificate(block.Bytes)
 			if err != nil {
 				return err
 			}
-			pp.Print(cert)
+			if err := cert(c); err != nil {
+				return err
+			}
 		default:
 			fmt.Printf("unsupported PEM type: %s\n", block.Type)
 		}
@@ -54,32 +96,34 @@ func (p pemCmd) Run() error {
 	return nil
 }
 
-type hostCmd struct {
-	Host string `opts:"mode=arg" help:"a required <host> containing both hostname and port"`
-}
-
-func (c hostCmd) Run() error {
-	if h, p, err := net.SplitHostPort(c.Host); err != nil {
-		return err
-	} else if h == "" {
-		return errors.New("empty hostname")
-	} else if p == "" {
-		return errors.New("empty port")
+func connect(host string) error {
+	log.Printf("connect to: %s", host)
+	// parse input
+	if u, err := url.Parse(host); err == nil && strings.HasPrefix(u.Scheme, "http") {
+		host = u.Host
 	}
-	// ctx := context.Background()
+	if _, _, err := net.SplitHostPort(host); err != nil {
+		host += ":443"
+	}
+	// setup tcp and tls
 	d := net.Dialer{
 		Timeout: 10 * time.Second,
 	}
 	config := &tls.Config{
 		InsecureSkipVerify: true,
 		VerifyConnection: func(cs tls.ConnectionState) error {
-			pp.Print(cs.PeerCertificates)
+			log.Printf("tls server name: %s", cs.ServerName)
+			log.Printf("tls version: %d", cs.Version)
+			log.Printf("tls ciphersuite: %d", cs.CipherSuite)
+			for _, c := range cs.PeerCertificates {
+				cert(c)
+			}
 			return nil
 		},
 	}
 	t0 := time.Now()
-	log.Printf("dialing %s", c.Host)
-	conn, err := tls.DialWithDialer(&d, "tcp", c.Host, config)
+	log.Printf("dialing %s", host)
+	conn, err := tls.DialWithDialer(&d, "tcp", host, config)
 	if err != nil {
 		return err
 	}
@@ -88,13 +132,7 @@ func (c hostCmd) Run() error {
 	return nil
 }
 
-func main() {
-	type config struct{}
-	c := config{}
-	opts.New(&c).
-		Version(version).
-		AddCommand(opts.New(&pemCmd{}).Name("pem")).
-		AddCommand(opts.New(&hostCmd{}).Name("host")).
-		Parse().
-		RunFatal()
+func cert(c *x509.Certificate) error {
+	pp.Print(c)
+	return nil
 }
