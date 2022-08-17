@@ -86,9 +86,7 @@ func reader(r io.Reader) error {
 			if err != nil {
 				return err
 			}
-			if err := cert(c); err != nil {
-				return err
-			}
+			pp.Print(c)
 		default:
 			fmt.Printf("unsupported PEM type: %s\n", block.Type)
 		}
@@ -115,9 +113,7 @@ func connect(host string) error {
 			log.Printf("tls server name: %s", cs.ServerName)
 			log.Printf("tls version: %d", cs.Version)
 			log.Printf("tls ciphersuite: %d", cs.CipherSuite)
-			for _, c := range cs.PeerCertificates {
-				cert(c)
-			}
+			pp.Print(cs.PeerCertificates)
 			return nil
 		},
 	}
@@ -128,11 +124,9 @@ func connect(host string) error {
 		return err
 	}
 	log.Printf("tls rtt %s", time.Since(t0))
-	conn.Close()
-	return nil
-}
 
-func cert(c *x509.Certificate) error {
-	pp.Print(c)
+	conn.ConnectionState()
+
+	conn.Close()
 	return nil
 }

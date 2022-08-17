@@ -4,6 +4,7 @@ import (
 	"crypto/x509"
 	"encoding/asn1"
 	"fmt"
+	"strings"
 
 	"github.com/jpillora/xtls/internal/oid"
 )
@@ -55,37 +56,49 @@ func customExtKeyUsage(ku x509.ExtKeyUsage) string {
 }
 
 func customKeyUsage(ku x509.KeyUsage) string {
-	switch ku {
-	case 0:
-		return "<usage undefined>"
-	case x509.KeyUsageDigitalSignature:
-		return "DigitalSignature"
-	case x509.KeyUsageContentCommitment:
-		return "ContentCommitment"
-	case x509.KeyUsageKeyEncipherment:
-		return "KeyEncipherment"
-	case x509.KeyUsageDataEncipherment:
-		return "DataEncipherment"
-	case x509.KeyUsageKeyAgreement:
-		return "KeyAgreement"
-	case x509.KeyUsageCertSign:
-		return "CertSign"
-	case x509.KeyUsageCRLSign:
-		return "CRLSign"
-	case x509.KeyUsageEncipherOnly:
-		return "EncipherOnly"
-	case x509.KeyUsageDecipherOnly:
-		return "DecipherOnly"
+	uses := []string{}
+	if ku&x509.KeyUsageDigitalSignature > 0 {
+		uses = append(uses, "DigitalSignature")
 	}
-	return fmt.Sprintf("<unknown usage %d>", ku)
+	if ku&x509.KeyUsageContentCommitment > 0 {
+		uses = append(uses, "ContentCommitment")
+	}
+	if ku&x509.KeyUsageKeyEncipherment > 0 {
+		uses = append(uses, "KeyEncipherment")
+	}
+	if ku&x509.KeyUsageDataEncipherment > 0 {
+		uses = append(uses, "DataEncipherment")
+	}
+	if ku&x509.KeyUsageKeyAgreement > 0 {
+		uses = append(uses, "KeyAgreement")
+	}
+	if ku&x509.KeyUsageCertSign > 0 {
+		uses = append(uses, "CertSign")
+	}
+	if ku&x509.KeyUsageCRLSign > 0 {
+		uses = append(uses, "CRLSign")
+	}
+	if ku&x509.KeyUsageEncipherOnly > 0 {
+		uses = append(uses, "EncipherOnly")
+	}
+	if ku&x509.KeyUsageDecipherOnly > 0 {
+		uses = append(uses, "DecipherOnly")
+	}
+	if len(uses) == 0 {
+		return "<usage undefined>"
+	}
+	return strings.Join(uses, "\n")
 }
 
 func customASNObjectID(asnOID asn1.ObjectIdentifier) string {
 	s := asnOID.String()
 	o, ok := oid.Lookup(s)
-	v := o.Name
-	if !ok {
-		v = "<unknown oid>"
+	v := o.Expl
+	if o.Expl == "" {
+		v = o.Name
 	}
-	return v + " " + s
+	if !ok {
+		return s
+	}
+	return fmt.Sprintf("%s <%s>", v, s)
 }
