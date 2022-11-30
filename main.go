@@ -124,9 +124,6 @@ func connect(host string) error {
 		return err
 	}
 	log.Printf("tls rtt %s", time.Since(t0))
-
-	conn.ConnectionState()
-
 	conn.Close()
 	return nil
 }
