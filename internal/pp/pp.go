@@ -2,6 +2,8 @@ package pp
 
 import (
 	"fmt"
+	"io"
+	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -80,6 +82,10 @@ func (ctx context) sprintf(format string, args ...any) string {
 }
 
 func Print(v ...any) {
+	printTo(os.Stdout, stdoutIsTerminal(), v...)
+}
+
+func printTo(w io.Writer, color bool, v ...any) {
 	ctx := context{
 		depth:  1,
 		custom: []CustomPrinter{customPrinter},
@@ -93,8 +99,40 @@ func Print(v ...any) {
 		}
 	}
 	for _, val := range vals {
-		fmt.Println(ctx.print(reflect.ValueOf(val)))
+		out := ctx.print(reflect.ValueOf(val))
+		if !color {
+			out = stripANSI(out)
+		}
+		fmt.Fprintln(w, out)
 	}
+}
+
+func stdoutIsTerminal() bool {
+	return isTerminal(os.Stdout)
+}
+
+func isTerminal(f *os.File) bool {
+	info, err := f.Stat()
+	return err == nil && info.Mode()&os.ModeCharDevice != 0
+}
+
+func stripANSI(s string) string {
+	var out strings.Builder
+	for i := 0; i < len(s); {
+		if s[i] == '\x1b' && i+1 < len(s) && s[i+1] == '[' {
+			j := i + 2
+			for j < len(s) && (s[j] < '@' || s[j] > '~') {
+				j++
+			}
+			if j < len(s) {
+				i = j + 1
+				continue
+			}
+		}
+		out.WriteByte(s[i])
+		i++
+	}
+	return out.String()
 }
 
 func (ctx context) printType(t reflect.Type) string {
