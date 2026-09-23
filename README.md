@@ -10,6 +10,12 @@ TLS utils prints certificates from file, stdin or hostname, more features to com
 * `xtls [file-path-to-cert]` print a PEM certificate file
 * `cat [file-path-to-cert] | xtls` print a PEM certificate from stdin
 * `xtls [domain]` print a certificate from a TLS connection to `domain`
+* `xtls --proxy http://proxy:8080 [domain]` connect through an HTTP CONNECT proxy
+
+CONNECT proxies may use `http://` or `https://`. Basic authentication can be
+included in the proxy URL, for example
+`--proxy http://user:password@proxy.example:8080`. URL-encode credentials that
+contain reserved characters.
 
 ### Install
 
